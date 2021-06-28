@@ -1,0 +1,51 @@
+{
+	"name": "@t2t2/pod-knight",
+	"version": "1.0.0",
+	"description": "Automated video podcast processor for the simple needs",
+	"type": "module",
+	"bin": {
+		"pod-knight": "./src/cli.js"
+	},
+	"author": "t2t2 <taavot@gmail.com",
+	"license": "MIT",
+	"repository": "t2t2/pod-knight",
+	"scripts": {
+		"lint": "eslint ."
+	},
+	"engines": {
+		"node": ">=16.0.0"
+	},
+	"devDependencies": {
+		"eslint": "^7.29.0",
+		"eslint-config-xo": "^0.37.0",
+		"eslint-plugin-unicorn": "^33.0.1"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.19.0",
+		"@aws-sdk/lib-storage": "^3.19.0",
+		"@aws-sdk/s3-request-presigner": "^3.19.0",
+		"enquirer": "^2.3.6",
+		"got": "^11.8.2",
+		"json5": "^2.2.0",
+		"listr2": "^3.10.0",
+		"mime-types": "^2.1.31",
+		"yargs": "^17.0.1"
+	},
+	"eslintConfig": {
+		"extends": [
+			"xo",
+			"plugin:unicorn/recommended"
+		],
+		"rules": {
+			"unicorn/prevent-abbreviations": [
+				"error",
+				{
+					"replacements": {
+						"args": false,
+						"params": false
+					}
+				}
+			]
+		}
+	}
+}
