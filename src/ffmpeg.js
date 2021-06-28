@@ -53,7 +53,47 @@ function getHwAccelerationFlags(hwEnc) {
 	return hwEnc === 'nvidia' ? ['-hwaccel', 'cuda', '-hwaccel_output_format', 'cuda'] : ['-hwaccel', 'auto'];
 }
 
-export function getPartEncodingSettings({start, end}, source, output, hwEnc) {
+function getEncodingVideoFlags(settings, hwEnc) {
+	const videoFlags = [
+		'-c:v',
+		hwEnc === 'nvidia' ? 'h264_nvenc' : 'libx264',
+		'-b:v',
+		settings.bitrate,
+		'-maxrate:v',
+		settings.maxrate,
+		'-bufsize:v',
+		settings.buffer,
+	];
+	const filters = [];
+
+	if (settings.scale) {
+		filters.push((hwEnc === 'nvidia' ? 'scale_cuda' : 'scale') + '=' + settings.scale);
+	}
+
+	if (settings.fps) {
+		videoFlags.push('-r', settings.fps);
+	}
+
+	if (filters.length > 0) {
+		videoFlags.push('-filter:v', filters.join(','));
+	}
+
+	return videoFlags;
+}
+
+function getEncodingAudioFlags(settings) {
+	const audioFlags = [
+		'-c:a',
+		settings.codec,
+		'-b:a',
+		settings.bitrate,
+	];
+
+	return audioFlags;
+}
+
+// eslint-disable-next-line max-params, unicorn/no-null
+export function getPartEncodingSettings({start, end}, source, output, partSettings = {}, hwEnc = null) {
 	return [
 		'-hide_banner',
 		...getHwAccelerationFlags(hwEnc),
@@ -67,17 +107,18 @@ export function getPartEncodingSettings({start, end}, source, output, hwEnc) {
 		'-to',
 		end - start,
 		// Video
-		'-c:v',
-		hwEnc === 'nvidia' ? 'h264_nvenc' : 'libx264',
-		'-b:v',
-		'2500k',
-		'-maxrate:v',
-		'3500k',
-		'-bufsize:v',
-		'8M',
+		...getEncodingVideoFlags({
+			bitrate: '2500k',
+			maxrate: '3500k',
+			buffer: '8000k',
+			...(partSettings?.video ?? {}),
+		}, hwEnc),
 		// Audio
-		'-c:a',
-		'aac',
+		...getEncodingAudioFlags({
+			codec: 'aac',
+			bitrate: '160k',
+			...(partSettings?.audio ?? {}),
+		}),
 		// Container
 		'-movflags',
 		'+faststart',
@@ -86,58 +127,53 @@ export function getPartEncodingSettings({start, end}, source, output, hwEnc) {
 	];
 }
 
-export function getOutputEncodingSettings({
-	type = 'video',
-}, inputFile, outputFile, hwEnc) {
+export function getOutputEncodingSettings(outputSettings, inputFile, outputFile, hwEnc) {
 	// eslint-disable-next-line unicorn/prevent-abbreviations
 	let hardwareAccFlags = [];
 	let videoFlags;
 	let audioFlags;
 	let containerFlags = [];
 
-	if (type === 'audio') {
+	if (outputSettings.type === 'audio') {
 		videoFlags = ['-vn'];
-		audioFlags = ['-vn', '-c:a', 'libmp3lame', '-q:a', 7];
+		audioFlags = getEncodingAudioFlags({
+			codec: 'libmp3lame',
+			bitrate: '128k',
+			...(outputSettings?.audio ?? {}),
+		});
 	} else {
 		hardwareAccFlags = getHwAccelerationFlags(hwEnc);
-		audioFlags = ['-c:a', 'aac', '-b:a', '160k'];
+		audioFlags = getEncodingAudioFlags({
+			codec: 'aac',
+			bitrate: '160k',
+			...(outputSettings?.audio ?? {}),
+		});
 		containerFlags = ['-movflags', '+faststart'];
-		const bandwith = ['-b:v', '1M', '-maxrate:v', '2M', '-bufsize:v', '4M'];
+		videoFlags = [
+			...getEncodingVideoFlags({
+				bitrate: '1000k',
+				maxrate: '2000k',
+				buffer: '4000k',
+				scale: '1280:720',
+				...(outputSettings?.video ?? {}),
+			}, hwEnc),
+		];
 
-		// eslint-disable-next-line unicorn/prefer-ternary
-		if (hwEnc === 'nvidia') {
-			videoFlags = [
-				// Resize
-				'-vf',
-				'scale_cuda=1280:720',
-				// Video profile
-				'-c:v',
-				'h264_nvenc',
-				...bandwith,
-				'-profile:v',
-				'high',
-				'-level:v',
-				'4.1',
-			];
-		} else {
-			videoFlags = [
-				// Resize
-				'-vf',
-				'scale=1280:720',
-				// Video profile
-				'-c:v',
-				'libx264',
-				...bandwith,
+		if (!hwEnc) {
+			videoFlags.push(
 				'-pix_fmt',
 				'yuv420p',
 				'-preset',
 				'slow',
-				'-profile:v',
-				'high',
-				'-level:v',
-				'4.1',
-			];
+			);
 		}
+
+		videoFlags.push(
+			'-profile:v',
+			'high',
+			'-level:v',
+			'4.1',
+		);
 	}
 
 	return [

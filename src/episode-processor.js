@@ -427,7 +427,13 @@ export default class EpisodeProcessor {
 				{
 					title: 'Encode cut',
 					task: async (_context, task) => {
-						const args = getPartEncodingSettings(part, this.source, localLocation, this.hwEnc);
+						const args = getPartEncodingSettings(
+							part,
+							this.source,
+							localLocation,
+							this.argv.partEncoding,
+							this.hwEnc,
+						);
 						try {
 							await runFFmpeg(args, task);
 						} finally {

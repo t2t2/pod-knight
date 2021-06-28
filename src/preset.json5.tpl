@@ -43,6 +43,24 @@
 	},
 
 	/**
+	 * Part encoding settings
+	 *
+	 * - audio.bitrate: target audio bitrate (default: 160k)
+	 *
+	 * - video.bitrate: target video bitrate (default: 2500k)
+	 * - video.maxrate: maximum video bitrate (default: 3500k)
+	 * - video.buffer: bitrate buffer size (default: 8000k)
+	 * - video.scale: Video framesize, must be in w:h format (default: unchanged from input)
+	 * - video.fps: Video fps (default: unchanged from input)
+	 */
+	"partEncoding": {
+		"audio": {
+		},
+		"video": {
+		},
+	},
+
+	/**
 	 * Settings for parts.
 	 * If there's more parts than specified then defaults are used.
 	 *
@@ -63,6 +81,14 @@
 	 * - type: "video" | "audio"
 	 * - prefix: (default: "")
 	 * - suffix: (default: "")
+	 *
+	 * - audio.bitrate: target audio bitrate (default: 128k for audio, 160k for video)
+	 *
+	 * - video.bitrate: target video bitrate (default: 1000k)
+	 * - video.maxrate: maximum video bitrate (default: 2000k)
+	 * - video.buffer: bitrate buffer size (default: 4000k)
+	 * - video.scale: Video framesize, must be in w:h format (default: 1280:720)
+	 * - video.fps: Video fps (default: unchanged)
 	 */
 	"formats": [
 		{"type": "video"},
