@@ -1,6 +1,6 @@
 {
 	"name": "@t2t2/pod-knight",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Automated video podcast processor for the simple needs",
 	"type": "module",
 	"bin": {
