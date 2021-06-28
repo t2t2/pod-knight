@@ -41,7 +41,7 @@ Additionally `--start / -s <timestamp>` and `--end / -e <timestamp>` can be used
 ## Example
 
 ```
-pod-knight --preset ./my-great-show ./stream-recording.mp4 MGS001 -s 00:05:04 01:02:13 02:04:45 -e 03:11:23
+pod-knight --preset ./my-great-show.json5 ./stream-recording.mp4 MGS001 -s 00:05:04 01:02:13 02:04:45 -e 03:11:23
 ```
 
 This will cut into:
