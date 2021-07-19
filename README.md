@@ -28,7 +28,7 @@ First generate a preset which will store configuration per show:
 pod-knight create:preset my-great-show
 ```
 
-This generates file `my-great-show.json5` which you can edit to configure settings relevant to processing this show.
+This generates file `my-great-show.json5` which you should edit to configure settings relevant to processing this show.
 
 Then to use it run:
 
@@ -62,3 +62,30 @@ MGS001/MGS001.mp3 (audio)
 MGS001/MGS001_post.mp4 (video)
 MGS001/MGS001_post.mp3 (audio)
 ```
+
+## Skipping parts
+
+If you've got something you don't want to cut out and publish at all (eg. there's a break between 2 parts) then you can:
+
+* Use `skip` in between cut timestamps to not render between those two  
+  ```
+  pod-knight --preset ./my-great-show.json5 ./stream-recording.mp4 MGS002 -s 01:00 02:00 skip 03:00 -e 04:00
+
+  Part 1: 00:01:00.000 - 00:02:00.000 (duration: 00:01:00.000)  MGS002_pre
+  Part 2: 00:03:00.000 - 00:04:00.000 (duration: 00:01:00.000)  MGS002
+  ```
+* Set the part to false in show preset:
+  ```json
+  "parts": [
+    {"suffix": "_episode"},
+    false,
+    {"suffix": "_bonus"},
+  ],
+  ```
+  ```
+  pod-knight --preset ./my-great-show.json5 ./stream-recording.mp4 MGS003 -s 01:00 02:00 03:00 -e 04:00
+
+  Part 1: 00:01:00.000 - 00:02:00.000 (duration: 00:01:00.000)  TEST_local_episode
+  Part 2: 00:03:00.000 - 00:04:00.000 (duration: 00:01:00.000)  TEST_local_bonus
+  ```
+

@@ -317,12 +317,31 @@ export default class EpisodeProcessor {
 					const duration = Number.parseFloat(context.ffprobe.format.duration);
 
 					const start = this.argv.start ? parseDuration(this.argv.start) : 0;
-					const cuts = this.argv.cuts.map(v => parseDuration(v));
+					const cuts = this.argv.cuts.map(v => (/^\d/.test(v) ? parseDuration(v) : v));
 					const end = this.argv.end ? parseDuration(this.argv.end) : duration;
 
 					const parts = [];
 					let partStart = start;
-					for (const [index, cut] of cuts.entries()) {
+					let partI = 0;
+					let skipNext = false;
+					for (const cut of cuts) {
+						if (cut === 'skip') {
+							skipNext = true;
+							continue;
+						}
+
+						if (skipNext) {
+							skipNext = false;
+							partStart = cut;
+							continue;
+						}
+
+						const index = partI++;
+						if (this.parts[index] === false) {
+							partStart = cut;
+							continue;
+						}
+
 						parts.push(getPartInfo({
 							start: partStart,
 							end: cut,
@@ -333,13 +352,16 @@ export default class EpisodeProcessor {
 						partStart = cut;
 					}
 
-					parts.push(getPartInfo({
-						start: partStart,
-						end,
-						index: parts.length,
-						partOptions: this.parts[parts.length],
-						outputBase: this.outputBase,
-					}));
+					if (this.parts[partI] !== false) {
+						parts.push(getPartInfo({
+							start: partStart,
+							end,
+							index: partI,
+							partOptions: this.parts[partI],
+							outputBase: this.outputBase,
+						}));
+					}
+
 					context.start = start;
 					context.end = end;
 					context.parts = parts;

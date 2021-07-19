@@ -22,7 +22,7 @@ yargs(hideBin(process.argv))
 				type: 'string',
 			});
 			yargs.positional('cuts', {
-				desc: 'Timestamps at which cuts are made between parts (for example to make preshow, show and postshow)',
+				desc: 'Timestamps at which cuts are made between parts (for example to make preshow, show and postshow). Use "skip" to skip between the 2 timestamps around it.',
 				type: 'string',
 			});
 			yargs.config('preset', 'Use preset', configPath => JSON5.parse(readFileSync(configPath, 'utf-8')));
