@@ -85,7 +85,7 @@ If you've got something you don't want to cut out and publish at all (eg. there'
   ```
   pod-knight --preset ./my-great-show.json5 ./stream-recording.mp4 MGS003 -s 01:00 02:00 03:00 -e 04:00
 
-  Part 1: 00:01:00.000 - 00:02:00.000 (duration: 00:01:00.000)  TEST_local_episode
-  Part 2: 00:03:00.000 - 00:04:00.000 (duration: 00:01:00.000)  TEST_local_bonus
+  Part 1: 00:01:00.000 - 00:02:00.000 (duration: 00:01:00.000)  MGS003_episode
+  Part 2: 00:03:00.000 - 00:04:00.000 (duration: 00:01:00.000)  MGS003_bonus
   ```
 
