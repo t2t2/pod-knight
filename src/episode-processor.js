@@ -7,6 +7,7 @@ import {basename, join} from 'node:path';
 import {GetObjectCommand, ListBucketsCommand, ListObjectsV2Command, S3Client} from '@aws-sdk/client-s3';
 import {Upload} from '@aws-sdk/lib-storage';
 import {getSignedUrl} from '@aws-sdk/s3-request-presigner';
+import {red} from 'colorette';
 import got from 'got';
 import {Manager, figures} from 'listr2';
 
@@ -28,7 +29,7 @@ export default class EpisodeProcessor {
 		// https://github.com/aws/aws-sdk-js-v3/issues/2438
 		this.signS3 = this.configureS3();
 
-		this.buckets = {
+		this.buckets = argv.upload ? {
 			private: {
 				...argv.upload.private,
 				outputPrefix: joinS3Path(argv.upload.private.prefix, this.outputBase),
@@ -37,7 +38,7 @@ export default class EpisodeProcessor {
 				...argv.upload.public,
 				outputPrefix: joinS3Path(argv.upload.public.prefix, this.outputBase),
 			},
-		};
+		} : false;
 
 		this.ffmpegQueues = {
 			video: new FFMpegQueue(argv.parallel?.video ?? 1),
@@ -238,6 +239,7 @@ export default class EpisodeProcessor {
 			},
 			{
 				title: 'Check S3 access',
+				enabled: () => this.buckets,
 				task: async () => {
 					const request = new ListBucketsCommand({});
 					const {Buckets: buckets} = await this.s3.send(request);
@@ -255,6 +257,7 @@ export default class EpisodeProcessor {
 			},
 			{
 				title: 'S3: no files in private',
+				enabled: () => this.buckets,
 				task: async () => {
 					const request = new ListObjectsV2Command({
 						Bucket: this.buckets.private.bucket,
@@ -272,6 +275,7 @@ export default class EpisodeProcessor {
 			},
 			{
 				title: 'S3: no files in public',
+				enabled: () => this.buckets,
 				task: async () => {
 					const request = new ListObjectsV2Command({
 						Bucket: this.buckets.public.bucket,
@@ -343,8 +347,12 @@ export default class EpisodeProcessor {
 					context.summary = [
 						`Input file: ${this.source} (${formatDuration(duration)})`,
 						`Output folder (local): ${this.outputBase}/`,
-						`Output prefix (private): ${this.buckets.private.outputPrefix}/`,
-						`Output prefix (public): ${this.buckets.public.outputPrefix}/`,
+						...(this.buckets ? [
+							`Output prefix (private): ${this.buckets.private.outputPrefix}/`,
+							`Output prefix (public): ${this.buckets.public.outputPrefix}/`,
+						] : [
+							red('No upload'),
+						]),
 						'',
 						...parts.map((part, index) => `Part ${index + 1}: ${formatDuration(part.start)} - ${formatDuration(part.end)} (duration: ${formatDuration(part.end - part.start)})  ${part.filename}`),
 					].join(EOL);
@@ -385,6 +393,7 @@ export default class EpisodeProcessor {
 
 		tasks.push({
 			title: 'Upload source',
+			enabled: () => this.buckets && this.argv.upload?.uploadRaw !== false,
 			task: async (context, task) => {
 				const sourceFileName = basename(this.source);
 				task.title = task.title + ' ' + sourceFileName;
@@ -443,6 +452,7 @@ export default class EpisodeProcessor {
 				},
 				{
 					title: 'Upload',
+					enabled: () => this.buckets,
 					task: async (context, task) => {
 						const params = {
 							Bucket: this.buckets.private.bucket,
@@ -506,6 +516,7 @@ export default class EpisodeProcessor {
 					},
 					{
 						title: 'Upload',
+						enabled: () => this.buckets,
 						task: async (context, task) => {
 							const params = {
 								Bucket: this.buckets.public.bucket,
@@ -535,6 +546,15 @@ export default class EpisodeProcessor {
 	}
 
 	async resultToWebhook(context) {
+		if (!this.buckets) {
+			await this.postWebHook({
+				content: `:tada: Finished processing ${this.outputBase}
+
+This run was local only.`,
+			});
+			return;
+		}
+
 		await this.postWebHook({
 			content: `:tada: Finished processing ${this.outputBase}
 
@@ -546,7 +566,7 @@ Listing private files: (Signed url accessible for 7 days)`,
 				},
 			],
 		});
-		await delay(1000);
+		await delay(500);
 
 		// Parts
 		{
@@ -560,7 +580,7 @@ Listing private files: (Signed url accessible for 7 days)`,
 			});
 		}
 
-		await delay(1000);
+		await delay(500);
 
 		// Outputs
 		{
@@ -578,7 +598,7 @@ Listing private files: (Signed url accessible for 7 days)`,
 			});
 		}
 
-		await delay(1000);
+		await delay(500);
 
 		await this.postWebHook(
 			':white_check_mark: Listing complete',
@@ -601,6 +621,10 @@ Listing private files: (Signed url accessible for 7 days)`,
 							const status = [];
 
 							const logSubtasks = (task, depth = 0) => {
+								if (!task.isEnabled()) {
+									return;
+								}
+
 								let icon = ' ';
 
 								switch (true) {
@@ -648,7 +672,7 @@ Listing private files: (Signed url accessible for 7 days)`,
 
 				const interval = setInterval(() => {
 					postStatusUpdate();
-				}, 30 * 1000);
+				}, 15 * 1000);
 				innerTask.subscribe(() => {
 					if (!innerTask.isPending()) {
 						clearInterval(interval);
@@ -672,7 +696,8 @@ Listing private files: (Signed url accessible for 7 days)`,
 		if (typeof message === 'string') {
 			let content = message;
 			if (log) {
-				content += '\n```\n' + log + '```';
+				// eslint-disable-next-line no-control-regex
+				content += '\n```\n' + log.replace(/\u001B\[\d+m/g, '') + '```';
 			}
 
 			if (ping && this.argv.discord.ping) {

@@ -48,7 +48,7 @@ yargs(hideBin(process.argv))
 				describe: 'Use hardware encoder',
 			});
 			yargs.option('upload', {
-				type: 'array',
+				type: 'object',
 				hidden: true,
 				demandOption: 'Missing upload configration (missing preset?)',
 				describe: 'Formats configuration',

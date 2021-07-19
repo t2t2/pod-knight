@@ -23,6 +23,9 @@
 	 * public: Settings for bucket where outputs are uploaded to
 	 * - bucket: s3 bucket 
 	 * - prefix: Base "directory" for uploaded files
+	 * uploadRaw: Upload raw footage to private bucket (default: true)
+	 * 
+	 * Replace object with false to disable uploading (only local processing)
 	 */
 	"upload": {
 		"options": {
@@ -40,6 +43,7 @@
 			"bucket": "",
 			"prefix": "",
 		},
+		"uploadRaw": true,
 	},
 
 	/**
